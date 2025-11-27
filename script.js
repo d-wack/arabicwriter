@@ -152,7 +152,8 @@ function renderWordList(words) {
         return;
     }
     
-    const wordItems = words.map(word => {
+    // Mobile card view
+    const cardView = words.map(word => {
         return `
             <div class="vocab-card">
                 <div class="card-header">
@@ -188,7 +189,45 @@ function renderWordList(words) {
         `;
     }).join('');
     
-    wordListDiv.innerHTML = wordItems;
+    // Desktop list view
+    const listView = `
+        <table class="word-table">
+            <thead>
+                <tr>
+                    <th>Arabic</th>
+                    <th>Phonetic</th>
+                    <th>English</th>
+                    <th>Example (Arabic)</th>
+                    <th>Example (English)</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${words.map(word => `
+                    <tr>
+                        <td class="arabic-cell">${word.word}</td>
+                        <td class="phonetic-cell">${word.phonetic || '-'}</td>
+                        <td class="english-cell">${word.translation}</td>
+                        <td class="arabic-cell">${word.arabic_sentence || '-'}</td>
+                        <td>${word.sentence || '-'}</td>
+                        <td class="actions-cell">
+                            <button class="table-btn audio-table-btn" onclick="playAudio('${word.word}', ${word.id})" title="Play audio">
+                                <span class="material-symbols-outlined">volume_up</span>
+                            </button>
+                            <button class="table-btn delete-table-btn" onclick="deleteWord(${word.id})" title="Delete">
+                                <span class="material-symbols-outlined">delete</span>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+    
+    wordListDiv.innerHTML = `
+        <div class="card-view-container">${cardView}</div>
+        <div class="list-view-container">${listView}</div>
+    `;
 }
 
 // Update Pagination Controls
