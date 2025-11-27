@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arabic Learning Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=delete,volume_up" />
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">Arabic Learning</div>
+        <button class="hamburger" id="hamburger" aria-label="Toggle menu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <ul class="nav-menu" id="navMenu">
+            <li><a href="#" class="nav-link active">Dashboard</a></li>
+            <li><a href="#" class="nav-link">Statistics</a></li>
+            <li><a href="#" class="nav-link">Settings</a></li>
+        </ul>
+    </nav>
+
+    <div class="dashboard-container">
+        <div class="input-panel">
+            <h2>Add New Word</h2>
+            <div class="input-group">
+                <label for="arabicInput">Arabic Word</label>
+                <input type="text" id="arabicInput" class="arabic-input"  dir="rtl">
+            </div>
+            <button id="translateBtn" class="btn-primary">Translate & Add</button>
+            <div id="loadingIndicator" class="loading" style="display: none;">Translating...</div>
+        </div>
+
+        <div class="word-list-panel">
+            <div class="panel-header">
+                <h2>Word List</h2>
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="Search words...">
+                </div>
+            </div>
+            
+            <div class="word-list" id="wordList">
+                <!-- Words will be loaded here -->
+            </div>
+            
+            <div class="pagination">
+                <button id="prevBtn" class="btn-pagination">Previous</button>
+                <span id="pageInfo">Page 1</span>
+                <button id="nextBtn" class="btn-pagination">Next</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

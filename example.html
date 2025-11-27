@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Arabic Vocab Card - Light</title>
+
+  <!-- Amiri Arabic Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f4f5f7;
+      font-family: system-ui, sans-serif;
+    }
+
+    .vocab-card {
+      width: 350px;
+      background: white;
+      border-radius: 18px;
+      box-shadow: 0 8px 22px rgba(0,0,0,0.07);
+      border: 1px solid #e5e7eb;
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #ececec, #ffffff);
+      padding: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #e2e2e2;
+    }
+
+    .arabic-word {
+      font-family: 'Amiri', serif;
+      font-size: 2.2rem;
+      font-weight: 700;
+      direction: rtl;
+      color: #222;
+    }
+
+    .audio-btn {
+      background: #f3f4f6;
+      border: 1px solid #d1d5db;
+      padding: 8px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      color: #333;
+    }
+
+    .body {
+      padding: 20px;
+    }
+
+    .label {
+      text-transform: uppercase;
+      font-size: 0.72rem;
+      color: #7a7a7a;
+      margin-bottom: 4px;
+    }
+
+    .phonetic {
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+
+    .meaning {
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin: 14px 0 20px;
+    }
+
+    .example-box {
+      background: #f9fafb;
+      padding: 5px;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+    }
+
+    .example-ar {
+      font-family: 'Amiri', serif;
+      direction: rtl;
+      text-align: right;
+      margin-bottom: 8px;
+      font-weight: 700;
+      color: #222;
+    }
+
+    .example-en {
+      color: #444;
+      font-size: 0.95rem;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="vocab-card">
+    
+    <div class="header">
+      <div class="arabic-word">أَكَلَ</div>
+      <button class="audio-btn">🔊 Play</button>
+    </div>
+
+    <div class="body">
+      <div class="label">Phonetic</div>
+      <div class="phonetic">akala</div>
+
+      <div class="meaning">ate</div>
+
+      <div class="label">Example</div>
+
+      <div class="example-box">
+        <div class="example-ar">أَكَلَ تُفَّاحَةً فِي الْفُطُورِ.</div>
+        <div class="example-en">He ate an apple for breakfast.</div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>
