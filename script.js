@@ -7,21 +7,25 @@ const wordListDiv = document.getElementById('wordList');
 const prevBtn = document.getElementById('prevBtn');
 const nextBtn = document.getElementById('nextBtn');
 const pageInfo = document.getElementById('pageInfo');
+const pageSizeSelect = document.getElementById('pageSize');
 
 // API Configuration
-const API_URL = `${window.location.protocol}//${window.location.hostname}:5000/api`;
+const API_URL = `${window.location.origin}/api`;
 const sessionId = 'session_' + Date.now();
+
+// Auth state
+let currentUser = null;
+let isAuthenticated = false;
 
 // Pagination State
 let currentPage = 1;
 let totalPages = 1;
-const wordsPerPage = 10;
+let wordsPerPage = 10;
 let currentSearch = '';
 
 // Initialize app
 window.addEventListener('load', () => {
-    arabicInput.focus();
-    loadWordList();
+    checkAuth();
     
     // Setup hamburger menu
     const hamburger = document.getElementById('hamburger');
@@ -35,8 +39,63 @@ window.addEventListener('load', () => {
     }
 });
 
+// Check authentication status
+async function checkAuth() {
+    try {
+        const response = await fetch(`${API_URL}/user`, {
+            credentials: 'include'
+        });
+        const data = await response.json();
+        
+        isAuthenticated = data.authenticated;
+        currentUser = data.user;
+        
+        updateAuthUI();
+        
+        if (isAuthenticated) {
+            arabicInput.focus();
+            loadWordList();
+        } else {
+            // Show login prompt
+            wordListDiv.innerHTML = `
+                <div class="empty-state">
+                    <p>Please log in to start learning Arabic</p>
+                    <button onclick="window.location.href='/login'" class="btn-primary" style="max-width: 200px; margin: 1rem auto;">
+                        Login with Auth0
+                    </button>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Auth check error:', error);
+    }
+}
+
+// Update auth UI
+function updateAuthUI() {
+    const authButton = document.getElementById('authButton');
+    if (isAuthenticated && currentUser) {
+        authButton.textContent = `Logout (${currentUser.name || currentUser.email})`;
+        authButton.onclick = (e) => {
+            e.preventDefault();
+            window.location.href = '/logout';
+        };
+    } else {
+        authButton.textContent = 'Login';
+        authButton.onclick = (e) => {
+            e.preventDefault();
+            window.location.href = '/login';
+        };
+    }
+}
+
 // Translate and Add Word
 async function translateAndAdd() {
+    if (!isAuthenticated) {
+        alert('Please log in to add words');
+        return;
+    }
+    
     const word = arabicInput.value.trim();
     
     if (!word) {
@@ -53,7 +112,8 @@ async function translateAndAdd() {
         const translateResponse = await fetch(`${API_URL}/translate`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ word })
+            body: JSON.stringify({ word }),
+            credentials: 'include'
         });
         
         const translateResult = await translateResponse.json();
@@ -75,7 +135,8 @@ async function translateAndAdd() {
                     arabic_sentence: translateResult.arabic_sentence
                 }],
                 sessionId: sessionId
-            })
+            }),
+            credentials: 'include'
         });
         
         const saveResult = await saveResponse.json();
@@ -100,6 +161,10 @@ async function translateAndAdd() {
 
 // Load Word List with Pagination
 async function loadWordList(page = 1, search = '') {
+    if (!isAuthenticated) {
+        return;
+    }
+    
     try {
         const params = new URLSearchParams({
             limit: wordsPerPage,
@@ -110,7 +175,9 @@ async function loadWordList(page = 1, search = '') {
             params.append('search', search);
         }
         
-        const response = await fetch(`${API_URL}/words?${params}`);
+        const response = await fetch(`${API_URL}/words?${params}`, {
+            credentials: 'include'
+        });
         const result = await response.json();
         
         if (!result.success) {
@@ -245,7 +312,8 @@ async function deleteWord(wordId) {
     
     try {
         const response = await fetch(`${API_URL}/words/${wordId}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            credentials: 'include'
         });
         
         const result = await response.json();
@@ -284,6 +352,12 @@ searchInput.addEventListener('input', (e) => {
     searchTimeout = setTimeout(() => {
         loadWordList(1, e.target.value.trim());
     }, 300);
+});
+
+// Page Size Change Handler
+pageSizeSelect.addEventListener('change', (e) => {
+    wordsPerPage = parseInt(e.target.value);
+    loadWordList(1, currentSearch);
 });
 
 // Pagination Handlers

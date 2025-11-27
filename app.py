@@ -1,16 +1,45 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from flask_cors import CORS
 import sqlite3
 from datetime import datetime
 import os
 from dotenv import load_dotenv
 from openai import OpenAI
+from authlib.integrations.flask_client import OAuth
+from functools import wraps
+import json
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Load environment variables
 load_dotenv()
 
 app = Flask(__name__, static_folder='.', static_url_path='')
-CORS(app)
+app.secret_key = os.getenv('SECRET_KEY')
+
+# Fix for ngrok/proxy - makes Flask aware it's behind a reverse proxy
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
+# Configure CORS
+CORS(app, supports_credentials=True, origins=[
+    f"https://{os.getenv('NGROK_DOMAIN')}",
+    "http://localhost:5000",
+    "http://127.0.0.1:5000"
+])
+
+# Initialize OAuth
+oauth = OAuth(app)
+auth0 = oauth.register(
+    'auth0',
+    client_id=os.getenv('AUTH0_CLIENT_ID'),
+    client_secret=os.getenv('AUTH0_CLIENT_SECRET'),
+    api_base_url=f"https://{os.getenv('AUTH0_DOMAIN')}",
+    access_token_url=f"https://{os.getenv('AUTH0_DOMAIN')}/oauth/token",
+    authorize_url=f"https://{os.getenv('AUTH0_DOMAIN')}/authorize",
+    server_metadata_url=f"https://{os.getenv('AUTH0_DOMAIN')}/.well-known/openid-configuration",
+    client_kwargs={
+        'scope': 'openid profile email',
+    },
+)
 
 # Initialize OpenAI client
 client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
@@ -22,6 +51,21 @@ def get_db():
     conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
     return conn
+
+def requires_auth(f):
+    """Decorator to require authentication"""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if 'user' not in session:
+            return jsonify({'error': 'Authentication required'}), 401
+        return f(*args, **kwargs)
+    return decorated
+
+def get_user_id():
+    """Get current user's ID from session"""
+    if 'user' in session:
+        return session['user'].get('sub', 'anonymous')
+    return 'anonymous'
 
 def init_db():
     """Initialize the database"""
@@ -49,6 +93,9 @@ def init_db():
         if 'arabic_sentence' not in columns:
             print('Adding arabic_sentence column...')
             cursor.execute('ALTER TABLE arabic_words ADD COLUMN arabic_sentence TEXT')
+        if 'user_id' not in columns:
+            print('Adding user_id column...')
+            cursor.execute('ALTER TABLE arabic_words ADD COLUMN user_id TEXT')
         conn.commit()
     else:
         # Create table with all columns
@@ -61,7 +108,8 @@ def init_db():
                 sentence TEXT,
                 arabic_sentence TEXT,
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-                session_id TEXT
+                session_id TEXT,
+                user_id TEXT
             )
         ''')
         conn.commit()
@@ -77,7 +125,62 @@ def index():
     """Serve the main page"""
     return app.send_static_file('index.html')
 
+# Auth0 routes
+@app.route('/login')
+def login():
+    """Redirect to Auth0 login"""
+    try:
+        # Use ngrok domain if available
+        ngrok_domain = os.getenv('NGROK_DOMAIN')
+        if ngrok_domain:
+            redirect_uri = f"https://{ngrok_domain}/callback"
+        else:
+            redirect_uri = url_for('callback', _external=True, _scheme='https')
+        
+        print(f"Login redirect URI: {redirect_uri}")
+        print(f"Auth0 Domain: {os.getenv('AUTH0_DOMAIN')}")
+        print(f"Client ID: {os.getenv('AUTH0_CLIENT_ID')}")
+        
+        return auth0.authorize_redirect(redirect_uri=redirect_uri)
+    except Exception as e:
+        print(f"Login error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/callback')
+def callback():
+    """Handle Auth0 callback"""
+    try:
+        print("Callback received")
+        token = auth0.authorize_access_token()
+        print(f"Token received: {token.get('userinfo', {})}")
+        session['user'] = token['userinfo']
+        return redirect('/')
+    except Exception as e:
+        print(f"Callback error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/logout')
+def logout():
+    """Logout user"""
+    session.clear()
+    return redirect(
+        f"https://{os.getenv('AUTH0_DOMAIN')}/v2/logout?"
+        + f"returnTo={url_for('index', _external=True, _scheme='https')}&"
+        + f"client_id={os.getenv('AUTH0_CLIENT_ID')}"
+    )
+
+@app.route('/api/user')
+def get_user():
+    """Get current user info"""
+    if 'user' in session:
+        return jsonify({
+            'authenticated': True,
+            'user': session['user']
+        })
+    return jsonify({'authenticated': False})
+
 @app.route('/api/translate', methods=['POST'])
+@requires_auth
 def translate_word():
     """Translate Arabic word to English using OpenAI"""
     data = request.json
@@ -113,11 +216,13 @@ def translate_word():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/words', methods=['POST'])
+@requires_auth
 def save_words():
     """Save words to database"""
     data = request.json
     words_data = data.get('words', [])
     session_id = data.get('sessionId', 'default')
+    user_id = get_user_id()
     
     if not words_data:
         return jsonify({'error': 'No words provided'}), 400
@@ -133,8 +238,8 @@ def save_words():
         arabic_sentence = item.get('arabic_sentence', '')
         if word:
             cursor.execute(
-                'INSERT INTO arabic_words (word, translation, phonetic, sentence, arabic_sentence, session_id) VALUES (?, ?, ?, ?, ?, ?)',
-                (word, translation, phonetic, sentence, arabic_sentence, session_id)
+                'INSERT INTO arabic_words (word, translation, phonetic, sentence, arabic_sentence, session_id, user_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                (word, translation, phonetic, sentence, arabic_sentence, session_id, user_id)
             )
     
     conn.commit()
@@ -147,20 +252,22 @@ def save_words():
     })
 
 @app.route('/api/words', methods=['GET'])
+@requires_auth
 def get_words():
     """Get words from database with pagination and search"""
     session_id = request.args.get('sessionId')
     limit = request.args.get('limit', 10, type=int)
     offset = request.args.get('offset', 0, type=int)
     search = request.args.get('search', '').strip()
+    user_id = get_user_id()
     
     conn = get_db()
     cursor = conn.cursor()
     
-    # Build query with filters
-    query = 'SELECT * FROM arabic_words WHERE 1=1'
-    count_query = 'SELECT COUNT(*) as total FROM arabic_words WHERE 1=1'
-    params = []
+    # Build query with filters - only get current user's words
+    query = 'SELECT * FROM arabic_words WHERE user_id = ?'
+    count_query = 'SELECT COUNT(*) as total FROM arabic_words WHERE user_id = ?'
+    params = [user_id]
     
     if session_id:
         query += ' AND session_id = ?'
@@ -257,12 +364,15 @@ def delete_words():
     return jsonify({'success': True, 'message': 'Words deleted'})
 
 @app.route('/api/words/<int:word_id>', methods=['DELETE'])
+@requires_auth
 def delete_word(word_id):
     """Delete a single word by ID"""
+    user_id = get_user_id()
     conn = get_db()
     cursor = conn.cursor()
     
-    cursor.execute('DELETE FROM arabic_words WHERE id = ?', (word_id,))
+    # Only delete if word belongs to current user
+    cursor.execute('DELETE FROM arabic_words WHERE id = ? AND user_id = ?', (word_id, user_id))
     conn.commit()
     
     if cursor.rowcount == 0:

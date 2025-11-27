@@ -20,6 +20,7 @@
             <li><a href="#" class="nav-link active">Dashboard</a></li>
             <li><a href="#" class="nav-link">Statistics</a></li>
             <li><a href="#" class="nav-link">Settings</a></li>
+            <li id="authLink"><a href="#" class="nav-link" id="authButton">Login</a></li>
         </ul>
     </nav>
 
@@ -50,6 +51,15 @@
                 <button id="prevBtn" class="btn-pagination">Previous</button>
                 <span id="pageInfo">Page 1</span>
                 <button id="nextBtn" class="btn-pagination">Next</button>
+                <div class="pagination-size">
+                    <label for="pageSize">Per page:</label>
+                    <select id="pageSize" class="page-size-select">
+                        <option value="10" selected>10</option>
+                        <option value="20">20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </div>
             </div>
         </div>
     </div>
