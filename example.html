@@ -84,13 +84,31 @@
       border: 1px solid #e5e7eb;
     }
 
+    .example-ar-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
     .example-ar {
       font-family: 'Amiri', serif;
       direction: rtl;
       text-align: right;
-      margin-bottom: 8px;
       font-weight: 700;
       color: #222;
+      flex: 1;
+    }
+
+    .example-audio-btn {
+      background: #f3f4f6;
+      border: 1px solid #d1d5db;
+      padding: 4px 8px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.75rem;
+      color: #333;
+      margin-left: 8px;
     }
 
     .example-en {
@@ -117,7 +135,10 @@
       <div class="label">Example</div>
 
       <div class="example-box">
-        <div class="example-ar">أَكَلَ تُفَّاحَةً فِي الْفُطُورِ.</div>
+        <div class="example-ar-container">
+          <div class="example-ar">أَكَلَ تُفَّاحَةً فِي الْفُطُورِ.</div>
+          <button class="example-audio-btn">🔊</button>
+        </div>
         <div class="example-en">He ate an apple for breakfast.</div>
       </div>
     </div>

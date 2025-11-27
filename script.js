@@ -247,7 +247,14 @@ function renderWordList(words) {
                     ${word.sentence || word.arabic_sentence ? `
                         <div class=\"label\" style=\"text-align: center;\">Example</div>
                         <div class=\"example-box\">
-                            ${word.arabic_sentence ? `<div class=\"example-ar\">${word.arabic_sentence}</div>` : ''}
+                            ${word.arabic_sentence ? `
+                                <div class=\"example-ar-container\">
+                                    <div class=\"example-ar\">${word.arabic_sentence}</div>
+                                    <button class=\"example-audio-btn\" onclick=\"playAudio('${word.arabic_sentence.replace(/'/g, "\\'")}', ${word.id})\" title=\"Play example\">
+                                        <span class=\"material-symbols-outlined\">volume_up</span>
+                                    </button>
+                                </div>
+                            ` : ''}
                             ${word.sentence ? `<div class=\"example-en\">${word.sentence}</div>` : ''}
                         </div>
                     ` : ''}
@@ -261,9 +268,11 @@ function renderWordList(words) {
         <table class="word-table">
             <thead>
                 <tr>
+                    <th></th>
                     <th>Arabic</th>
                     <th>Phonetic</th>
                     <th>English</th>
+                    <th></th>
                     <th>Example (Arabic)</th>
                     <th>Example (English)</th>
                     <th>Actions</th>
@@ -272,15 +281,24 @@ function renderWordList(words) {
             <tbody>
                 ${words.map(word => `
                     <tr>
+                        <td class="actions-cell">
+                            <button class="table-btn audio-table-btn" onclick="playAudio('${word.word}', ${word.id})" title="Play word">
+                                <span class="material-symbols-outlined">volume_up</span>
+                            </button>
+                        </td>
                         <td class="arabic-cell">${word.word}</td>
                         <td class="phonetic-cell">${word.phonetic || '-'}</td>
                         <td class="english-cell">${word.translation}</td>
+                        <td class="actions-cell">
+                            ${word.arabic_sentence ? `
+                                <button class="table-btn audio-table-btn" onclick="playAudio('${word.arabic_sentence.replace(/'/g, "\\'")}', ${word.id})" title="Play example">
+                                    <span class="material-symbols-outlined">volume_up</span>
+                                </button>
+                            ` : ''}
+                        </td>
                         <td class="arabic-cell">${word.arabic_sentence || '-'}</td>
                         <td>${word.sentence || '-'}</td>
                         <td class="actions-cell">
-                            <button class="table-btn audio-table-btn" onclick="playAudio('${word.word}', ${word.id})" title="Play audio">
-                                <span class="material-symbols-outlined">volume_up</span>
-                            </button>
                             <button class="table-btn delete-table-btn" onclick="deleteWord(${word.id})" title="Delete">
                                 <span class="material-symbols-outlined">delete</span>
                             </button>
